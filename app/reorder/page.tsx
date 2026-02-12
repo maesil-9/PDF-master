@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiUpload, FiDownload, FiHome, FiX, FiMove } from 'react-icons/fi'
+import { FiUpload, FiDownload, FiHome, FiX, FiMove, FiEye } from 'react-icons/fi'
 import { PDFDocument } from 'pdf-lib'
 import {
   DndContext,
@@ -50,12 +50,26 @@ interface PageInfo {
   height: number
 }
 
+async function extractSinglePage(file: File, pageNumber: number): Promise<Blob> {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdfDoc = await PDFDocument.load(arrayBuffer)
+  
+  const newPdf = await PDFDocument.create()
+  const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNumber - 1])
+  newPdf.addPage(copiedPage)
+  
+  const pdfBytes = await newPdf.save()
+  return new Blob([pdfBytes], { type: 'application/pdf' })
+}
+
 function SortablePageItem({
   pageInfo,
   onRemove,
+  onPreview,
 }: {
   pageInfo: PageInfo
   onRemove: (id: string) => void
+  onPreview: (pageNumber: number) => void
 }) {
   const {
     attributes,
@@ -112,14 +126,24 @@ function SortablePageItem({
             </Text>
           </VStack>
         </HStack>
-        <IconButton
-          aria-label="페이지 제거"
-          icon={<Icon as={FiX} />}
-          size="sm"
-          colorScheme="red"
-          variant="ghost"
-          onClick={() => onRemove(pageInfo.id)}
-        />
+        <HStack spacing={1}>
+          <IconButton
+            aria-label="페이지 미리보기"
+            icon={<Icon as={FiEye} />}
+            size="sm"
+            colorScheme="blue"
+            variant="ghost"
+            onClick={() => onPreview(pageInfo.originalPageNumber)}
+          />
+          <IconButton
+            aria-label="페이지 제거"
+            icon={<Icon as={FiX} />}
+            size="sm"
+            colorScheme="red"
+            variant="ghost"
+            onClick={() => onRemove(pageInfo.id)}
+          />
+        </HStack>
       </HStack>
     </Box>
   )
@@ -227,6 +251,27 @@ export default function ReorderPage() {
       status: 'info',
       duration: 2000,
     })
+  }
+
+  const handlePreviewPage = async (pageNumber: number) => {
+    if (!file) return
+    
+    try {
+      const blob = await extractSinglePage(file, pageNumber)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      
+      // URL을 일정 시간 후 정리
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (error) {
+      console.error('미리보기 오류:', error)
+      toast({
+        title: '오류',
+        description: '페이지 미리보기를 생성할 수 없습니다',
+        status: 'error',
+        duration: 3000,
+      })
+    }
   }
 
   const handleReorder = async () => {
@@ -391,7 +436,7 @@ export default function ReorderPage() {
                     )}
 
                     <Text fontSize="sm" color="gray.600" mb={4}>
-                      ☰ 아이콘을 드래그하여 순서를 변경하거나, ✕ 버튼으로 페이지를 제거하세요
+                      ☰ 아이콘을 드래그하여 순서를 변경하거나, 👁️ 버튼으로 미리보기, ✕ 버튼으로 페이지를 제거하세요
                     </Text>
 
                     <DndContext
@@ -409,6 +454,7 @@ export default function ReorderPage() {
                               key={pageInfo.id}
                               pageInfo={pageInfo}
                               onRemove={handleRemovePage}
+                              onPreview={handlePreviewPage}
                             />
                           ))}
                         </VStack>

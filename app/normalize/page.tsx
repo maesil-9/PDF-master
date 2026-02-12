@@ -28,16 +28,29 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  IconButton,
 } from '@chakra-ui/react'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiUpload, FiDownload, FiHome, FiAlertCircle } from 'react-icons/fi'
+import { FiUpload, FiDownload, FiHome, FiAlertCircle, FiEye } from 'react-icons/fi'
 import { PDFDocument } from 'pdf-lib'
 
 interface PageInfo {
   pageNumber: number
   width: number
   height: number
+}
+
+async function extractSinglePage(file: File, pageNumber: number): Promise<Blob> {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdfDoc = await PDFDocument.load(arrayBuffer)
+  
+  const newPdf = await PDFDocument.create()
+  const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNumber - 1])
+  newPdf.addPage(copiedPage)
+  
+  const pdfBytes = await newPdf.save()
+  return new Blob([pdfBytes], { type: 'application/pdf' })
 }
 
 export default function NormalizePage() {
@@ -228,6 +241,27 @@ export default function NormalizePage() {
     (info) => info.width === pageInfos[0].width && info.height === pageInfos[0].height
   )
 
+  const handlePreviewPage = async (pageNumber: number) => {
+    if (!file) return
+    
+    try {
+      const blob = await extractSinglePage(file, pageNumber)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      
+      // URL을 일정 시간 후 정리
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (error) {
+      console.error('미리보기 오류:', error)
+      toast({
+        title: '오류',
+        description: '페이지 미리보기를 생성할 수 없습니다',
+        status: 'error',
+        duration: 3000,
+      })
+    }
+  }
+
   return (
     <Container maxW="container.lg" py={10}>
       <VStack spacing={8} align="stretch">
@@ -324,6 +358,7 @@ export default function NormalizePage() {
                             <Th isNumeric>너비 (px)</Th>
                             <Th isNumeric>높이 (px)</Th>
                             <Th>해상도</Th>
+                            <Th width="80px">미리보기</Th>
                           </Tr>
                         </Thead>
                         <Tbody>
@@ -336,6 +371,16 @@ export default function NormalizePage() {
                                 <Text fontSize="xs" color="gray.600">
                                   {info.width} x {info.height}
                                 </Text>
+                              </Td>
+                              <Td>
+                                <IconButton
+                                  aria-label="페이지 미리보기"
+                                  icon={<Icon as={FiEye} />}
+                                  size="sm"
+                                  colorScheme="blue"
+                                  variant="ghost"
+                                  onClick={() => handlePreviewPage(info.pageNumber)}
+                                />
                               </Td>
                             </Tr>
                           ))}
