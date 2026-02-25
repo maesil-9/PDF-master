@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiUpload, FiDownload, FiClock, FiLayers, FiLayout, FiList } from 'react-icons/fi'
+import { FiUpload, FiDownload, FiClock, FiLayers, FiLayout, FiList, FiGrid } from 'react-icons/fi'
 import { PDFDocument } from 'pdf-lib'
 
 export default function Home() {
@@ -185,6 +185,15 @@ export default function Home() {
                 onClick={() => router.push('/merge')}
               >
                 여러 PDF 병합
+              </Button>
+              <Button
+                leftIcon={<Icon as={FiGrid} />}
+                colorScheme="orange"
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/mix')}
+              >
+                페이지 혼합
               </Button>
               <Button
                 leftIcon={<Icon as={FiList} />}

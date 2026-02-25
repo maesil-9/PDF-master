@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     const encodedFilename = encodeURIComponent(originalName)
     
     // 응답 반환 (변환된 해상도 정보를 헤더에 포함)
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename*=UTF-8''${encodedFilename}`,

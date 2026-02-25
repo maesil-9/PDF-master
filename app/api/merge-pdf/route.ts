@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     const encodedFilename = encodeURIComponent(filename)
 
     // 응답 반환 (결과 해상도 정보를 헤더에 포함)
-    return new NextResponse(mergedPdfBytes, {
+    return new NextResponse(Buffer.from(mergedPdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename*=UTF-8''${encodedFilename}`,

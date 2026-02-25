@@ -59,7 +59,7 @@ async function extractSinglePage(file: File, pageNumber: number): Promise<Blob> 
   newPdf.addPage(copiedPage)
   
   const pdfBytes = await newPdf.save()
-  return new Blob([pdfBytes], { type: 'application/pdf' })
+  return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' })
 }
 
 function SortablePageItem({
