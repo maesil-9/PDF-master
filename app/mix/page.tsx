@@ -97,14 +97,21 @@ function SortablePageCard({
       position="relative"
     >
       <HStack justify="space-between" mb={2}>
-        <Icon
-          as={FiMove}
-          boxSize={4}
-          color="gray.400"
-          cursor="grab"
+        <Box
+          as="button"
+          type="button"
           {...attributes}
           {...listeners}
-        />
+          cursor="grab"
+          p={2}
+          m={-2}
+          borderRadius="md"
+          _hover={{ bg: 'gray.100' }}
+          _active={{ cursor: 'grabbing' }}
+          aria-label="드래그하여 순서 변경"
+        >
+          <Icon as={FiMove} boxSize={5} color="gray.400" pointerEvents="none" />
+        </Box>
         <HStack spacing={1}>
           <IconButton
             aria-label="제거"
@@ -132,6 +139,8 @@ function SortablePageCard({
             w="100%"
             h="100%"
             objectFit="contain"
+            draggable={false}
+            style={{ pointerEvents: 'none' }}
           />
         ) : (
           <Box
@@ -200,7 +209,7 @@ export default function MixPage() {
   const router = useRouter()
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -276,29 +285,41 @@ export default function MixPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // 업로드 시 자동 썸네일 생성 (순차 처리)
+  // 업로드 시 자동 썸네일 생성 (병렬 처리, 동시 4개)
+  const THUMBNAIL_CONCURRENCY = 4
+
   useEffect(() => {
     if (pageItems.length === 0) return
 
     let cancelled = false
 
     async function loadThumbnails() {
-      for (const item of pageItems) {
+      for (let i = 0; i < pageItems.length; i += THUMBNAIL_CONCURRENCY) {
         if (cancelled) return
-        setGeneratingThumbnailIds((prev) => new Set(prev).add(item.id))
-        try {
-          const url = await fetchThumbnail(item.file, item.pageIndex)
-          if (cancelled) return
-          setThumbnailUrls((prev) => ({ ...prev, [item.id]: url }))
-        } catch (e) {
-          if (!cancelled) console.error('썸네일 로드 실패:', item.fileName, item.pageNumber, e)
-        } finally {
-          setGeneratingThumbnailIds((prev) => {
-            const next = new Set(prev)
-            next.delete(item.id)
-            return next
+        const chunk = pageItems.slice(i, i + THUMBNAIL_CONCURRENCY)
+        setGeneratingThumbnailIds((prev) => {
+          const next = new Set(prev)
+          chunk.forEach((item) => next.add(item.id))
+          return next
+        })
+        await Promise.all(
+          chunk.map(async (item) => {
+            if (cancelled) return
+            try {
+              const url = await fetchThumbnail(item.file, item.pageIndex)
+              if (cancelled) return
+              setThumbnailUrls((prev) => ({ ...prev, [item.id]: url }))
+            } catch (e) {
+              if (!cancelled) console.error('썸네일 로드 실패:', item.fileName, item.pageNumber, e)
+            } finally {
+              setGeneratingThumbnailIds((prev) => {
+                const next = new Set(prev)
+                next.delete(item.id)
+                return next
+              })
+            }
           })
-        }
+        )
       }
     }
 

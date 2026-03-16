@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiUpload, FiDownload, FiClock, FiLayers, FiLayout, FiList, FiGrid } from 'react-icons/fi'
+import { FiUpload, FiDownload, FiClock, FiLayers, FiLayout, FiList, FiGrid, FiMinimize2 } from 'react-icons/fi'
 import { PDFDocument } from 'pdf-lib'
 
 export default function Home() {
@@ -212,6 +212,15 @@ export default function Home() {
                 onClick={() => router.push('/normalize')}
               >
                 해상도 통일
+              </Button>
+              <Button
+                leftIcon={<Icon as={FiMinimize2} />}
+                colorScheme="cyan"
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/compress')}
+              >
+                용량 압축
               </Button>
             </HStack>
             <Button

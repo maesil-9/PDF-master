@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     await page.setViewport({ width: viewportW, height: viewportH })
     await page.goto(dataUrl, { waitUntil: 'load', timeout: 20000 })
     // PDF 뷰어 렌더링 대기 (검은 화면 방지)
-    await new Promise((r) => setTimeout(r, 2500))
+    await new Promise((r) => setTimeout(r, 800))
     const screenshot = await page.screenshot({ type: 'png' })
     await browser.close()
 
